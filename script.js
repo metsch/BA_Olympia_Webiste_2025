@@ -830,7 +830,8 @@ function addHoverText(
   const el = document.querySelector(selector);
   if (!el) return;
 
-  el.addEventListener("mouseenter", () => {
+  // pointerover behaves like mouseover but also works with touch and stylus
+  el.addEventListener("pointerover", () => {
     const lightbox = document.getElementById("lightbox");
     const isLightboxOpen =
       lightbox && lightbox.getAttribute("aria-hidden") === "false";
@@ -841,10 +842,14 @@ function addHoverText(
     follower.setAttribute("data-active", selector);
   });
 
-  el.addEventListener("mouseleave", () => {
-    if (follower.getAttribute("data-active") === selector) {
-      follower.innerHTML = "";
-      follower.removeAttribute("data-active");
+  el.addEventListener("pointerout", (event) => {
+    // Only clear the follower if the pointer moved outside the element,
+    // not when entering a child element
+    if (!el.contains(event.relatedTarget)) {
+      if (follower.getAttribute("data-active") === selector) {
+        follower.innerHTML = "";
+        follower.removeAttribute("data-active");
+      }
     }
   });
 }
