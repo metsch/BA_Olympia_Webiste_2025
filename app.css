@@ -1,0 +1,1085 @@
+html,
+body {
+  width: 100%;
+  overflow-x: hidden;
+  margin: 0;
+  cursor: none;
+}
+
+#custom-cursor,
+#custom-cursor-pointer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none; /* nie blockieren */
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  color: yellow;
+}
+
+#custom-cursor-pointer {
+  display: none; /* Nur sichtbar auf Hover über "pointer" */
+}
+
+@font-face {
+  font-family: "suisse mono thin";
+  font-style: thin;
+  src: url("../font/SuisseIntlMono-Thin-WebS.woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "suisse mono regular";
+  font-style: normal;
+  src: url("../font/SuisseIntlMono-Regular-WebS.woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "suisse mono bold";
+  font-style: bold;
+  src: url("../font/SuisseIntlMono-Bold-WebXL.woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "suisse intl semibold";
+  font-style: normal;
+  src: url("../font/SuisseIntl-Semibold.woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "suisse intl thin";
+  font-style: thin;
+  src: url("../font/SuisseIntl-Thin.woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "suisse intl regular";
+  font-style: normal;
+  src: url("../font/SuisseIntl-Regular.woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "suisse intl light italic";
+  font-style: normal;
+  src: url("../font/SuisseIntl-LightIt.woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "suisse intl light";
+  font-style: normal;
+  src: url("../font/SuisseIntl-Light.woff2");
+  font-display: swap;
+}
+
+.cursorStylingLight {
+  font-family: "suisse intl light";
+  margin: 0;
+  padding: 0;
+}
+
+.cursorStylingBold {
+  font-family: "suisse intl semibold";
+  margin: 0;
+  padding: 0;
+}
+
+#loader.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#follower {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
+
+  /* Wichtig: Statt margin-left —> padding innen */
+  padding-left: 2vh;
+
+  font-size: 17px;
+  font-family: "suisse intl semibold";
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1010;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* nicht center! */
+}
+
+.sidebar {
+  position: fixed;
+  top: 10;
+  left: 0;
+  width: 20%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-left: 0.8rem;
+
+  box-sizing: border-box;
+  z-index: 1001;
+
+  transition: filter 0.9s ease;
+}
+
+.sidebar.invertiert {
+  filter: invert(1);
+}
+
+.navLeisteMitLinie {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  margin-top: -10vh;
+  height: 28vh;
+
+  gap: 1%; /* Abstand zwischen Linie und Buttons */
+}
+
+.linie {
+  width: 2px;
+  background-color: black;
+  height: 100%; /* Start für Animation */
+  transition: height 0.6s ease;
+  transform-origin: top;
+}
+
+.navButtonLeiste {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  width: 100%;
+  height: 25vh;
+  padding-left: 1vh;
+
+  border-left: 2px solid black;
+}
+
+/* Buttons Navigation */
+.navButton {
+  background: none;
+  border: none;
+  font: 600 0.7rem "suisse intl semibold";
+
+  height: 3vh;
+}
+
+/* Wenn Button hover, aber nicht aktiv */
+
+.archivNavigation {
+  width: 100%;
+}
+
+.buttonTagsNav {
+  font-family: "suisse intl semibold";
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  color: black;
+  background-color: white;
+  border: 1px solid black;
+  padding: 0.4rem 1.2rem;
+  border-radius: 25px;
+
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1vh;
+  margin-top: 1vh;
+}
+
+.buttonTagsNav:hover {
+  background-color: black;
+  color: white;
+}
+
+.buttonTagsNav:active {
+  transform: scale(0.7);
+}
+
+#zufaelligWaehlen {
+  margin-left: 1.2vh;
+  font-size: 0.9rem;
+}
+
+*:focus {
+  outline: none;
+}
+
+#custom-cursor.pointer {
+  background: red;
+  pointer-events: none; /* nie Maus-Events blocken */
+}
+
+.caption {
+  font-size: 0.7rem;
+  font-family: "suisse mono regular";
+  opacity: 0.6;
+}
+
+.wordmarkeMitLinie {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 10vh;
+
+  justify-content: flex-end;
+
+  gap: 5%; /* Abstand zwischen Linie und Buttons */
+}
+
+.wordmarke {
+  height: 10vh;
+  width: 17vh;
+  color: black;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  padding-left: 1vh;
+
+  z-index: 1005;
+
+  border-left: 2px solid black;
+}
+
+#bilder {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-gap: 16px;
+  padding: 0;
+  margin: 0;
+}
+
+.gallery-item {
+  list-style: none;
+}
+
+.gallery-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 20px;
+}
+
+.gallery-item figcaption {
+  text-align: center;
+  font-size: 0.9rem;
+  margin: 2px;
+}
+
+#container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 84vw;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+
+  margin-left: auto;
+  margin-right: 0;
+
+  perspective: 10px;
+}
+#container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Container: weite Perspektive, Blickpunkt oben zentriert */
+#container {
+  perspective: 150px; /* größerer Wert → subtilerer, aber spürbarer Effekt */
+  perspective-origin: 50% 0%; /* Blickpunkt mittig oben */
+  transform-style: preserve-3d; /* 3D-Raum für alle Kinder erzeugen */
+}
+
+/* Grid-Wrapper muss den 3D-Raum weiterreichen */
+#bilder,
+.bildAll {
+  transform-style: preserve-3d;
+}
+
+/* Basis-Styling für alle Bilder im 3D-Raum */
+.bildAll img {
+  backface-visibility: hidden;
+  will-change: transform;
+  transition: transform 0.2s ease-out;
+}
+
+/* 1. Stelle sicher, dass jede Kachel 3D-fähig ist und eine relative Box hat */
+.bildAll {
+  position: relative; /* für das absolute Positionieren der Caption */
+  transform-style: preserve-3d;
+}
+
+.auswahlZahl {
+  display: inline-block;
+  width: 2em; /* oder 2ch, damit alle Zahlen Platz haben */
+  text-align: left;
+
+  font-family: "suisse mono thin";
+  font-size: 0.7rem;
+
+  transition: opacity 0.3s ease;
+  margin-right: 0.25em;
+  margin-left: 1vh;
+
+  font-family: "suisse intl semibold";
+}
+
+.tag-count {
+  display: inline-block;
+  width: 2em; /* oder 2ch, damit alle Zahlen Platz haben */
+  text-align: left;
+
+  font-family: "suisse intl semibold";
+  font-size: 0.7rem;
+
+  transition: opacity 0.3s ease;
+  margin-right: 0.25em;
+
+  opacity: 0;
+}
+
+.tag.tag.selected .tag-count {
+  opacity: 1;
+}
+.stopWrapper {
+  margin-left: 1.5vh;
+}
+
+.tag {
+  color: rgb(160, 159, 159);
+  font-family: "suisse mono regular";
+  font-style: thin;
+  font-size: 0.7rem;
+
+  margin: 0.3rem 0;
+  white-space: nowrap;
+
+  animation: zoomIn 0.4s ease;
+}
+
+.tagAuswahlMitLinie {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  width: 100%;
+
+  margin-top: 5vh;
+
+  justify-content: flex-end;
+
+  gap: 5%; /* Abstand zwischen Linie und Buttons */
+}
+
+#resetButton.disabled {
+  opacity: 0;
+}
+
+.tagAuswahl {
+  height: 80vh;
+  width: 27vh;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-left: 1vh;
+
+  border-left: 2px solid black;
+}
+
+.tagContainerWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+
+  max-height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.selectedTags {
+  display: flex;
+  flex-direction: column;
+  max-height: 70%;
+  overflow-y: scroll;
+  border-bottom: 1px solid #ccc;
+
+  position: sticky;
+  top: 0;
+  bottom: 2rem;
+  z-index: 1;
+}
+
+.tagContainer {
+  display: flex;
+  height: 70%;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.tagAuswahl .tag.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.tag:hover {
+  color: black;
+
+  font-size: 0.8rem;
+  transition: 0.2s ease;
+}
+
+/* ausgewählte Tags immer schwarz darstellen */
+.tag.selected {
+  color: black;
+  font-family: "suisse mono regular";
+  font-style: thin;
+  font-size: 0.8rem;
+
+  margin: 0.2rem 0;
+  padding: 2%;
+  height: 15px;
+
+  white-space: nowrap;
+
+  animation: zoomIn 0.4s ease;
+  border: 1px solid black;
+  border-radius: 0.4vh;
+
+  display: inline-block; /* oder block, je nach Kontext */
+}
+
+.tag.selected:hover {
+  background-color: #2e2e2e;
+  color: white;
+  transition: 0.5s;
+}
+
+.beschreibungTags {
+  font-family: "suisse intl light italic";
+  font-size: 1.3vh;
+  margin-top: 1vh;
+
+  margin-left: 1vh;
+  margin-bottom: 0.5vh;
+}
+
+.routeWrapper {
+  border: 1px solid lightgrey;
+  padding: 5%;
+  margin-left: 0%;
+  margin-bottom: 2vh;
+  border-radius: 0.4vh;
+  max-height: 40%;
+}
+
+.tag-leave {
+  transform: scale(0.8);
+  opacity: 0;
+  animation: zoomIn 0.4s ease;
+}
+
+/* 1) Grundzustand der Lightbox: unsichtbar */
+#lightbox {
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 1000;
+}
+
+/* 2) Sichtbar, wenn aria-hidden="false" */
+#lightbox[aria-hidden="false"] {
+  display: block;
+}
+
+/* 3) Backdrop: gelber Layer, startet rechts außerhalb */
+.lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 0, 0.9);
+  width: 79%;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+/* 4) Einfahr-Animation, wenn Lightbox sichtbar wird */
+#lightbox[aria-hidden="false"] .lightbox-backdrop {
+  animation: slideInOverlay 0.5s ease-out forwards;
+}
+
+/* Ausfahren, wenn wir die Klasse "closing" setzen */
+#lightbox.closing .lightbox-backdrop {
+  animation: slideOutOverlay 0.5s ease-out forwards;
+}
+
+/* 5) Inhalt der Lightbox */
+.lightbox-content {
+  position: relative;
+  top: 5vh;
+  margin: 0;
+  width: 95%;
+  height: 80%;
+  padding: 2rem;
+  border-radius: 4px;
+  overflow: hidden;
+
+  /* Fade-in für den Content */
+  animation: fadeInContent 0.5s ease-out;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.lightbox-info {
+  font-family: "suisse intl semibold";
+  width: 60vh;
+  height: auto;
+}
+.lbInfoAttribut {
+  color: black;
+  font-family: "suisse intl semibold";
+  font-size: 0.7rem;
+  height: auto;
+
+  display: flex;
+}
+
+.lbInfoAttribut > strong {
+  flex: 0 0 4rem; /* z.B. immer 6rem breit */
+}
+
+.lbInfoTag {
+  color: black;
+  height: auto;
+
+  font-family: "suisse mono regular";
+  font-size: 0.7rem;
+  flex: 1; /* nimmt den restlichen Platz ein */
+}
+
+.lbInfoButton {
+  width: 250px;
+
+  display: flex;
+  flex-direction: column;
+  top: 0;
+  bottom: 2rem;
+}
+
+/* 6) Bild/Videoplayer in der Lightbox */
+.lightbox-img {
+  max-width: auto;
+  max-height: 65vh;
+  object-fit: contain;
+  transition: transform 0.3s ease; /* Sanfte Animation */
+}
+
+.lightbox-img:hover {
+  transform: scale(1.01); /* 5 % größer beim Hover */
+}
+
+/* 7) Close-Button oben rechts */
+.lightbox-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1001;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  opacity: 0;
+}
+
+.startbox-info {
+  display: flex;
+  flex-direction: column;
+
+  width: 100%;
+  height: 20%;
+}
+
+.startbox-content {
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+}
+
+.listeTextStart {
+  display: flex;
+  flex-direction: row;
+
+  height: 50%;
+  width: 100%;
+
+  justify-content: center;
+  margin-top: 5vh;
+}
+
+.listeAttributeStart {
+  display: flex;
+  gap: 2rem;
+}
+.listeTextOrt,
+.listeTextThema {
+  display: flex;
+  flex-direction: column;
+
+  font-size: 0.7rem;
+
+  padding: 1rem;
+
+  height: 30vh;
+  overflow-y: auto;
+}
+
+.listeTextOrt > div:nth-child(1),
+.listeTextThema > div:nth-child(1) {
+  margin-bottom: 0.2rem;
+
+  font-family: "suisse intl semibold";
+  font-size: 1rem;
+}
+.listeTextOrt > div:not(:first-child),
+.listeTextThema > div:not(:first-child) {
+  margin: 0.1rem 0;
+  font-family: "suisse mono regular";
+}
+
+.textStart {
+  height: 100%;
+  width: 30%;
+  margin-left: 10vh;
+
+  padding: 1rem;
+
+  height: 50vh;
+  overflow-y: auto;
+
+  font-size: 0.7rem;
+  font-family: "suisse intl semibold";
+  line-height: 1.1em;
+}
+
+.wortmarkeStart {
+  height: auto;
+  width: 150vh;
+  color: black;
+
+  margin: 0 auto;
+  margin-top: 15%;
+}
+
+#startbox,
+#impressumbox,
+#datenbankbox,
+#archivbox {
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 1000;
+}
+
+#startbox[aria-hidden="false"],
+#impressumbox[aria-hidden="false"],
+#datenbankbox[aria-hidden="false"],
+#archivbox[aria-hidden="true"] {
+  display: block;
+}
+
+#startbox .startbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 0, 0.9);
+  transform: translateY(-100%);
+}
+
+#impressumbox .impressumbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 0, 0.9);
+  transform: translateY(100%);
+}
+
+#datenbankbox .datenbankbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: #222222;
+  transform: translateY(100%);
+}
+
+#archivbox {
+  position: fixed; /* fixiert die Box im Viewport */
+  top: 0; /* jeweils 0 vom Viewport‐Rand */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden; /* verhindert eigenes Scrollen */
+  z-index: 1000; /* ggf. über anderen Inhalten liegen */
+}
+
+#startbox[aria-hidden="false"] .startbox-backdrop {
+  animation: slideDownOverlay 0.5s ease-out forwards;
+}
+
+#startbox[aria-hidden="true"] .startbox-backdrop {
+  animation: slideUpOverlay 0.5s ease-out forwards;
+}
+
+#impressumbox[aria-hidden="false"] .impressumbox-backdrop,
+#datenbankbox[aria-hidden="false"] .datenbankbox-backdrop {
+  animation: slideDownToOverlay 0.5s ease-out forwards;
+}
+#impressumbox[aria-hidden="true"] .impressumbox-backdrop,
+#datenbankbox[aria-hidden="true"] .datenbankbox-backdrop {
+  animation: slideUpToOverlay 0.5s ease-out forwards;
+}
+
+/* 1) Backdrop ganz hinten */
+.impressumbox-backdrop,
+.datenbankbox-backdrop {
+  z-index: 1000;
+  /* … */
+}
+
+/* 2) Content darüber (z.B. weißer Kasten) */
+.impressumbox-content,
+.datenbankbox-content {
+  position: relative; /* nötig für z-index */
+  z-index: 1001;
+}
+
+/* 3) Close-Button ganz vorne */
+.impressumbox-close,
+.datenbankbox-close {
+  position: absolute; /* oder relative im Content */
+  z-index: 1002;
+}
+
+/* Container: Tabelle und Preview nebeneinander */
+.datenbankbox-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 12vh;
+
+  height: 100vh;
+  position: relative;
+  z-index: 1010;
+}
+
+/* Linke Spalte: Scrollbare Tabelle */
+.datenbankbox-info {
+  flex: 1 1 auto;
+
+  padding: 3vh;
+  max-height: 60vh;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  position: relative;
+}
+
+/* Tabelle: volle Breite, klare Ränder */
+.datenbankbox-info table {
+  width: 90%;
+  height: 200px;
+
+  border-collapse: collapse;
+  color: white;
+  font-family: "suisse mono thin";
+  font-size: 0.7rem;
+  white-space: nowrap;
+
+  margin: auto;
+
+  z-index: 1008 !important;
+}
+
+.datenbankbox-info th,
+.datenbankbox-info td {
+  text-align: left;
+  padding: 0.2rem 0.2rem; /* oben/unten 0.75rem, links/rechts 0.5rem */
+
+  border-bottom: 0.2rem solid transparent; /* Lücke als unsichtbarer Rand */
+}
+
+.datenbankbox-info table thead th {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  color: #222222; /* gleiche Farbe wie Tabellenhintergrund */
+  z-index: 10;
+}
+
+/* Hover-Cover auf Gelb */
+.datenbankbox-info tr:hover {
+  color: rgba(255, 255, 0);
+}
+
+/* Rechte Spalte: Bild/Video-Vorschau */
+.datenbankBild {
+  position: absolute; /* liegt über dem anderen Inhalt */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* zentriert es exakt */
+  width: 30%;
+  max-width: 400px;
+  height: auto;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+
+  z-index: 2; /* über der Tabelle */
+}
+
+/* Media‐Elemente immer absolut füllen und animiert ein-/ausblenden */
+.datenbankBild img,
+.datenbankBild video {
+  max-width: 500px;
+  max-height: 600px;
+  object-fit: contain;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none; /* auch hier sicherheitshalber */
+}
+
+/* Wenn .show draufsteht, fade&scale-In */
+.datenbankBild.show img,
+.datenbankBild.show video {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 2) Content-Container */
+.impressumbox-content {
+  position: relative;
+  z-index: 1001;
+  max-width: 90vw;
+  max-height: 90vh;
+  margin: 5vh auto;
+  margin-top: 15%;
+  padding: 2rem;
+
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+}
+
+/* 3) Schließen-Knopf */
+.impressumbox-close,
+.startbox-close,
+.datenbankbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1002;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  opacity: 0;
+}
+.datenbankbox-close {
+  color: white;
+}
+
+/* 4) Zwei-Spalten-Layout */
+.impressum-container {
+  display: flex;
+  gap: 2rem;
+  width: 70%;
+}
+/* linke Spalte */
+.impressum-left {
+  flex: 1;
+}
+.impressum-left h2 {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+.impressum-item {
+  display: flex;
+  margin-bottom: 1rem;
+  align-items: baseline;
+}
+.impressum-item .label {
+  flex: 0 0 8rem;
+  font-family: "suisse intl semibold";
+}
+.impressum-item .value {
+  flex: 1;
+  font-family: "suisse mono regular";
+
+  line-height: 2;
+}
+
+.headlineImpressum {
+  font-family: "suisse intl semibold";
+  font-size: 0.9rem;
+}
+
+.impressumLink {
+  font-family: "suisse mono thin";
+}
+
+/* rechte Spalte */
+.impressum-right {
+  flex: 0 0 40%;
+}
+
+.impressum-right p {
+  line-height: 1.6;
+  font-family: "suisse intl semibold";
+}
+.impressum-right a {
+  color: #000;
+  text-decoration: underline;
+}
+
+.fadeInDown {
+  animation: fadeInDown 1s ease;
+}
+
+.slideInDown {
+  animation: slideInDown 2s ease;
+}
+
+/* Slide down: von -100% (oben) nach 0 (Position) */
+@keyframes slideDownOverlay {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Slide up: von 0 (Position) nach -100% (oben) */
+@keyframes slideUpOverlay {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+/* Fade-In für den Content beim Öffnen */
+@keyframes fadeInContent {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInOverlay {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutOverlay {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes slideUpToOverlay {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes slideDownToOverlay {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    -webkit-transform: translate3d(0, -100%, 0);
+    transform: translate3d(0, -100%, 0);
+  }
+
+  to {
+    opacity: 1;
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    -webkit-transform: translate3d(0, -100%, 0);
+    transform: translate3d(0, -100%, 0);
+    visibility: visible;
+  }
+
+  to {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    -webkit-transform: scale3d(0.3, 0.3, 0.3);
+    transform: scale3d(0.3, 0.3, 0.3);
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+.animate__zoomIn {
+  -webkit-animation-name: zoomIn;
+  animation-name: zoomIn;
+}
+
+body,
+a,
+button,
+.navButton,
+.tag,
+.clickable,
+#custom-cursor,
+#custom-cursor-pointer {
+  cursor: none !important;
+}
