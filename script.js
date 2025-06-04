@@ -469,9 +469,9 @@ resetBtn.addEventListener("click", () => {
   applyFilter();
 });
 
-// Array, in dem wir alle Overlay-Instanzen sammeln
+// Array sammelt alle Overlay-Instanzen
 const overlayBoxes = [];
-// Element, das nur sichtbar sein soll, wenn keine Box offen ist
+// Wird ausgeblendet sobald eine Overlay-Box geöffnet ist
 const tagAuswahlEl = document.querySelector(".tagAuswahl");
 
 document
@@ -514,9 +514,15 @@ function setupOverlayBox(btnId, boxId, closeSel, animDuration = 500) {
     setTimeout(() => {
       box.style.display = "none";
 
-      // NUR HIER ist wirklich garantiert, dass sie als "geschlossen" gilt
+      // Box-spezifische Aufräumarbeiten
+      if (boxId === "datenbankbox") {
+        inDatenbankBox = false;
+        setFollower();
+      }
+
+      // NUR HIER ist garantiert, dass sie als "geschlossen" gilt
       updateTagAuswahlVisibility();
-      updateButtonOpacity();
+      updateActiveBoxStyles();
     }, animDuration);
   }
 
@@ -530,7 +536,7 @@ function setupOverlayBox(btnId, boxId, closeSel, animDuration = 500) {
       document.body.style.overflow = "hidden";
     }
     updateTagAuswahlVisibility();
-    updateButtonOpacity();
+    applyBoxStyles(boxId);
   }
 
   btn.addEventListener("click", openBox);
@@ -540,7 +546,7 @@ function setupOverlayBox(btnId, boxId, closeSel, animDuration = 500) {
   overlayBoxes.push({ box, close: closeBox });
 }
 
-// Archiv-Button: Schließt beim Klick wirklich ALLE Overlay-Boxen
+// Archiv-Button: schließt alle Overlays und zeigt Archiv
 const archivBtn = document.getElementById("archivButton");
 if (archivBtn) {
   archivBtn.addEventListener("click", () => {
@@ -549,6 +555,7 @@ if (archivBtn) {
 
     overlayBoxes.forEach(({ close }) => close());
     updateTagAuswahlVisibility();
+    applyBoxStyles("archivbox");
   });
 }
 
@@ -557,6 +564,11 @@ setupOverlayBox("startButton", "startbox", ".startbox-close", 500);
 setupOverlayBox("impressumButton", "impressumbox", ".impressumbox-close", 500);
 setupOverlayBox("datenbankButton", "datenbankbox", ".datenbankbox-close", 500);
 setupOverlayBox("archivButton", "archivbox", null);
+
+// Backdrops reagieren ebenfalls zum Schließen der Boxen
+setupBackdropClickToClose("startbox", "#startbox .startbox-backdrop");
+setupBackdropClickToClose("impressumbox", "#impressumbox .impressumbox-backdrop");
+setupBackdropClickToClose("datenbankbox", "#datenbankbox .datenbankbox-backdrop");
 
 // Klick auf den gelben Hintergrund schließt die Box (nicht den Inhalt)
 function setupBackdropClickToClose(boxId, backdropSelector) {
@@ -572,116 +584,40 @@ function setupBackdropClickToClose(boxId, backdropSelector) {
   }
 }
 
-function updateButtonOpacity() {
-  const buttons = document.querySelectorAll(".navButton");
-  const archivButton = document.getElementById("archivButton");
-  const impressumButton = document.getElementById("impressumButton");
-  const datenbankButton = document.getElementById("datenbankButton");
+// ------ Styling der Navigation & Cursor je nach geöffneter Box ------
+const boxStyles = {
+  startbox: { buttonId: "startButton", color: "black" },
+  impressumbox: { buttonId: "impressumButton", color: "black" },
+  datenbankbox: { buttonId: "datenbankButton", color: "white" },
+  archivbox: { buttonId: "archivButton", color: "black" },
+};
 
-  const startboxOpen = overlayBoxes.some(
-    (o) =>
-      o.box.id === "startbox" && o.box.getAttribute("aria-hidden") === "false"
+// wendet die definierten Styles für eine Box an
+function applyBoxStyles(boxId) {
+  const { buttonId, color } = boxStyles[boxId] || boxStyles.archivbox;
+  document.querySelectorAll(".navButton").forEach((button) => {
+    button.style.opacity = button.id === buttonId ? "1" : "0.2";
+    button.style.color = color;
+  });
+  follower.style.color = color;
+  navButtonLeiste.style.borderLeft = `3px solid ${color}`;
+  wordmarke.style.borderLeft = `3px solid ${color}`;
+  wordmarkeEl.style.color = color;
+}
+
+// ermittelt die derzeit sichtbare Box und setzt die Styles entsprechend
+function updateActiveBoxStyles() {
+  const open = overlayBoxes.find(
+    (o) => o.box.getAttribute("aria-hidden") === "false"
   );
-
-  const startboxBackdrop = document.querySelector(
-    "#startbox .startbox-backdrop"
-  );
-  if (startboxBackdrop) {
-    startboxBackdrop.addEventListener("click", () => {
-      const closeObj = overlayBoxes.find((o) => o.box.id === "startbox");
-      if (closeObj) closeObj.close();
-    });
-  }
-
-  const impressumboxOpen = overlayBoxes.some(
-    (o) =>
-      o.box.id === "impressumbox" &&
-      o.box.getAttribute("aria-hidden") === "false"
-  );
-  const impressumboxBackdrop = document.querySelector(
-    "#impressumbox .impressumbox-backdrop"
-  );
-  if (impressumboxBackdrop) {
-    impressumboxBackdrop.addEventListener("click", () => {
-      const closeObj = overlayBoxes.find((o) => o.box.id === "impressumbox");
-      if (closeObj) closeObj.close();
-    });
-  }
-
-  const datenbankboxOpen = overlayBoxes.some(
-    (o) =>
-      o.box.id === "datenbankbox" &&
-      o.box.getAttribute("aria-hidden") === "false"
-  );
-
-  const datenbankboxBackdrop = document.querySelector(
-    "#datenbankbox .datenbankbox-backdrop"
-  );
-  if (datenbankboxBackdrop) {
-    datenbankboxBackdrop.addEventListener("click", () => {
-      const closeObj = overlayBoxes.find((o) => o.box.id === "datenbankbox");
-      if (closeObj) closeObj.close();
-    });
-  }
-
-  if (startboxOpen) {
-    buttons.forEach((button) => {
-      button.style.opacity = button.id === "startButton" ? "1" : "0.2";
-      button.style.color = "black";
-      follower.style.color = "black";
-      navButtonLeiste.style.borderLeft = "3px solid black";
-      wordmarke.style.borderLeft = "3px solid black";
-
-      wordmarkeEl.style.color = "black";
-    });
-  } else if (impressumboxOpen) {
-    buttons.forEach((button) => {
-      button.style.opacity = button.id === "impressumButton" ? "1" : "0.2";
-      button.style.color = "black";
-      follower.style.color = "black";
-      navButtonLeiste.style.borderLeft = "3px solid black";
-      wordmarke.style.borderLeft = "3px solid black";
-
-      wordmarkeEl.style.color = "black";
-    });
-  } else if (datenbankboxOpen) {
-    buttons.forEach((button) => {
-      button.style.opacity = button.id === "datenbankButton" ? "1" : "0.2";
-      button.style.color = "white";
-      follower.style.color = "white";
-      navButtonLeiste.style.borderLeft = "3px solid white";
-      wordmarke.style.borderLeft = "3px solid white";
-
-      wordmarkeEl.style.color = "white";
-    });
-  } else if (archivOpen) {
-    buttons.forEach((button) => {
-      button.style.opacity = button.id === "archivButton" ? "1" : "0.2";
-      follower.style.color = "black";
-      button.style.color = "black";
-      wordmarke.style.borderLeft = "3px solid black";
-
-      wordmarkeEl.style.color = "black";
-      navButtonLeiste.style.borderLeft = "3px solid black";
-    });
-  } else {
-    // fallback
-    buttons.forEach((button) => {
-      button.style.opacity = button.id === "archivButton" ? "1" : "0.2";
-      follower.style.color = "black";
-      button.style.color = "black";
-      wordmarke.style.borderLeft = "3px solid black";
-
-      wordmarkeEl.style.color = "black";
-      navButtonLeiste.style.borderLeft = "3px solid black";
-    });
-  }
+  const activeId = open ? open.box.id : "archivbox";
+  applyBoxStyles(activeId);
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  // Hier sicherstellen, dass die Funktionen erst aufgerufen werden, wenn die DOM vollständig geladen ist
+  // sicherstellen, dass zu Beginn die korrekten Styles gesetzt sind
   updateTagAuswahlVisibility();
-  updateButtonOpacity();
+  updateActiveBoxStyles();
 });
 
 if (wordmarkeEl) {
@@ -805,18 +741,6 @@ function setFollower(content = "", color = "white", isHTML = false) {
   }
 }
 
-// Rücksetzen beim Schließen der Datenbankbox
-const datenbankboxBackdrop = document.querySelector(
-  "#datenbankbox .datenbankbox-backdrop"
-);
-if (datenbankboxBackdrop) {
-  datenbankboxBackdrop.addEventListener("click", () => {
-    const closeObj = overlayBoxes.find((o) => o.box.id === "datenbankbox");
-    if (closeObj) closeObj.close();
-    inDatenbankBox = false;
-    setFollower(); // Standard zurück
-  });
-}
 
 // ——— Standardbereiche ———
 // Hilfsfunktion zum Hinzufügen von Hover-Text
