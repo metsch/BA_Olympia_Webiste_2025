@@ -3,7 +3,6 @@ const bilderEl = document.querySelector("#bilder");
 // Referenz auf Tag-Container und Anzeige-Element
 const tagContainer = document.querySelector(".tagContainer");
 const auswahlZahlEl = document.querySelector(".auswahlZahl");
-const auswahlZahlTag = document.querySelector("#auswahlZahlTag");
 //const listeOrtEl = document.querySelector(".listeTextOrt");
 //const listeThemaEl = document.querySelector(".listeTextThema");
 const buttonTagsNav = document.querySelector(".buttonTagsNav");
@@ -23,7 +22,9 @@ let inDatenbankBox = false;
 let fullData = []; // Alle Daten aus JSON
 let filteredData = []; // Gefilterte Daten je nach Tags
 let currentIndex = 0;
-const BATCH_SIZE = 50;
+const BATCH_SIZE = 25;
+const MAX_MEDIA_ELEMENTS = 300; // maximale Anzahl gleichzeitiger .bildAll-Elemente
+
 let isLoading = false;
 let startboxWheelHandler;
 let archivOpen = false;
@@ -62,15 +63,38 @@ function throttle(fn, wait) {
 // idle timer reset
 function resetIdleTimer() {
   clearTimeout(idleTimer);
-  clearInterval(autoScrollInterval);
+  stopAutoScroll(); // statt clearInterval()
   idleTimer = setTimeout(startAutoScroll, IDLE_DELAY);
 }
 
+let isAutoScrolling = false;
+let lastScrollTime = 0;
+
 function startAutoScroll() {
-  autoScrollInterval = setInterval(() => {
-    containerEl.scrollBy({ top: AUTO_SCROLL_STEP });
-    handleScroll();
-  }, AUTO_SCROLL_INTERVAL_MS);
+  if (isAutoScrolling) return; // schon aktiv
+  isAutoScrolling = true;
+
+  function step(timestamp) {
+    if (!isAutoScrolling) return;
+
+    if (!lastScrollTime) lastScrollTime = timestamp;
+    const elapsed = timestamp - lastScrollTime;
+
+    if (elapsed > AUTO_SCROLL_INTERVAL_MS) {
+      containerEl.scrollBy({ top: AUTO_SCROLL_STEP });
+      handleScroll();
+      lastScrollTime = timestamp;
+    }
+
+    requestAnimationFrame(step);
+  }
+
+  requestAnimationFrame(step);
+}
+
+function stopAutoScroll() {
+  isAutoScrolling = false;
+  lastScrollTime = 0;
 }
 
 function onUserActivity() {
@@ -81,7 +105,6 @@ function onUserActivity() {
 fetchData();
 resetIdleTimer();
 
-window.addEventListener("wheel", onUserActivity, { passive: true });
 containerEl.addEventListener("mousemove", onUserActivity, { passive: true });
 
 async function fetchData() {
@@ -95,13 +118,15 @@ async function fetchData() {
     renderDatabase();
     //renderStartLists(fullData);
     // Scroll + zoom listeners
-    containerEl.addEventListener(
-      "scroll",
-      throttle(() => {
-        handleScroll();
-        parallaxScroll();
-      }, 100)
-    );
+    containerEl.addEventListener("scroll", throttle(onScroll, 100), {
+      passive: true,
+    });
+
+    function onScroll() {
+      handleScroll(); // Lädt neue Bilder, wenn nötig
+      requestParallax(); // Parallax-Scroll über requestAnimationFrame
+      parallaxScroll();
+    }
     containerEl.addEventListener("wheel", handleZoom, { passive: false });
   } catch (e) {
     console.warn(e);
@@ -224,6 +249,7 @@ function handleScroll() {
     loadMoreImages();
     isLoading = false;
   }
+  cleanUpOffscreenMedia();
 }
 
 function parallaxScroll() {
@@ -233,6 +259,62 @@ function parallaxScroll() {
       const r = img.parentElement.getBoundingClientRect();
       img.style.transform = `translateY(${r.top * (1 - speed)}px)`;
     });
+  });
+}
+
+// Puffer in Pixeln; du hast 9000 gesagt
+const CLEANUP_BUFFER = 10000;
+// Nur alle X Pixel einmal bereinigen
+const CLEANUP_SCROLL_DISTANCE = 10000;
+let lastCleanupScrollTop = 0;
+
+function cleanUpOffscreenMedia() {
+  const viewTop = containerEl.scrollTop;
+  const viewBottom = viewTop + containerEl.clientHeight;
+
+  // Nur arbeiten, wenn wir weit genug gescrollt haben
+  if (Math.abs(viewTop - lastCleanupScrollTop) < CLEANUP_SCROLL_DISTANCE) {
+    return;
+  }
+  lastCleanupScrollTop = viewTop;
+
+  let removedHeightAbove = 0;
+
+  bilderEl.querySelectorAll(".bildAll").forEach((el) => {
+    const elTop = el.offsetTop;
+    const elBottom = elTop + el.offsetHeight;
+
+    /* Element liegt weit ÜBER dem sichtbaren Bereich */
+    if (elBottom < viewTop - CLEANUP_BUFFER) {
+      removedHeightAbove += el.offsetHeight;
+      fadeOutAndRemove(el);
+    } else if (elTop > viewBottom + CLEANUP_BUFFER) {
+      /* Element liegt weit UNTER dem sichtbaren Bereich */
+      fadeOutAndRemove(el);
+    }
+  });
+
+  // ----  Scroll-Versatz kompensieren  ----
+  if (removedHeightAbove > 0) {
+    containerEl.scrollTop -= removedHeightAbove;
+  }
+}
+
+/* Hilfsfunktion für sanftes Ausblenden */
+function fadeOutAndRemove(el) {
+  if (el.classList.contains("fade-out")) return; // schon unterwegs
+  el.classList.add("fade-out");
+  setTimeout(() => el.remove(), 300); // passt zur CSS-Transition
+}
+
+let parallaxPending = false;
+
+function requestParallax() {
+  if (parallaxPending) return;
+  parallaxPending = true;
+
+  requestAnimationFrame(() => {
+    parallaxPending = false;
   });
 }
 
@@ -292,12 +374,38 @@ function loadMoreImages() {
     wrapper.append(media, cap);
     bilderEl.appendChild(wrapper);
   }
+  enforceDomLimit();
 }
 
 // Funktion: sichtbar machen mit weichem Übergang
 function handleMediaLoaded(wrapper) {
   wrapper.style.transition = "opacity 0.6s ease";
   wrapper.style.opacity = "1";
+}
+
+function enforceDomLimit() {
+  const mediaElements = bilderEl.querySelectorAll(".bildAll");
+
+  const overflow = mediaElements.length - MAX_MEDIA_ELEMENTS;
+
+  if (overflow > 0) {
+    for (let i = 0; i < overflow; i++) {
+      mediaElements[i].remove(); // entferne die ältesten zuerst
+    }
+  }
+}
+
+function handleZoom(e) {
+  if (!e.ctrlKey) return;
+  e.preventDefault();
+  scale += -e.deltaY * 0.05;
+  scale = Math.min(Math.max(1, scale), 3);
+  const rect = bilderEl.getBoundingClientRect();
+  const ox = ((e.clientX - rect.left) / rect.width) * 100;
+  const oy = ((e.clientY - rect.top) / rect.height) * 100;
+  bilderEl.style.transformOrigin = `${ox}% ${oy}%`;
+  bilderEl.style.transform = `scale(${scale})`;
+  zoomIndicator.innerText = scale.toFixed(2);
 }
 
 function shuffle(a) {
@@ -470,6 +578,11 @@ const lightboxBackdrop = lightbox.querySelector(".lightbox-backdrop");
 const sidebar = document.querySelector(".sidebar");
 if (lightboxBackdrop && sidebar) {
   // Klick auf Backdrop – aber nur wenn direkt
+  lightboxBackdrop.addEventListener("click", (e) => {
+    if (e.target === lightboxBackdrop) {
+      closeLightbox();
+    }
+  });
 
   // Klick auf Sidebar – immer schließen
   sidebar.addEventListener("click", () => {
@@ -1247,3 +1360,22 @@ beschreibungTagsLightbox.addEventListener("click", () => {
   applyFilter(); // Filter anwenden
   closeLightbox(); // Lightbox schließen
 });
+
+let timeout;
+
+function resetTimer() {
+  clearTimeout(timeout);
+  timeout = setTimeout(() => {
+    location.reload(); // Seite neu laden
+  }, 5 * 60 * 1000); // 5 Minuten in Millisekunden
+}
+
+// Ereignisse, die als Interaktion zählen
+window.addEventListener("mousemove", resetTimer);
+window.addEventListener("mousedown", resetTimer);
+window.addEventListener("keypress", resetTimer);
+window.addEventListener("touchstart", resetTimer);
+window.addEventListener("scroll", resetTimer);
+
+// Timer beim Laden der Seite starten
+resetTimer();
