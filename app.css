@@ -6,6 +6,26 @@ body {
   cursor: none;
 }
 
+::-webkit-scrollbar {
+  display: none;
+}
+
+#batch-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  background-color: yellow;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  font-size: 2rem;
+  font-weight: bold;
+  z-index: 99999 !important;
+}
+
 #custom-cursor,
 #custom-cursor-pointer {
   position: fixed;
@@ -14,11 +34,14 @@ body {
   pointer-events: none; /* nie blockieren */
   transform: translate(-50%, -50%);
   z-index: 9999;
-  color: yellow;
 }
 
 #custom-cursor-pointer {
   display: none; /* Nur sichtbar auf Hover über "pointer" */
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(+3%, +3%); /* weiter nach oben/links */
 }
 
 @font-face {
@@ -70,6 +93,13 @@ body {
 }
 
 @font-face {
+  font-family: "suisse intl semibold italic";
+  font-style: normal;
+  src: url("../font/SuisseIntl-SemiboldIt.woff2");
+  font-display: swap;
+}
+
+@font-face {
   font-family: "suisse intl light";
   font-style: normal;
   src: url("../font/SuisseIntl-Light.woff2");
@@ -100,7 +130,7 @@ body {
   transform: translate(-50%, -50%);
 
   /* Wichtig: Statt margin-left —> padding innen */
-  padding-left: 2vh;
+  padding-left: 6vh;
 
   font-size: 17px;
   font-family: "suisse intl semibold";
@@ -118,7 +148,7 @@ body {
   top: 10;
   left: 0;
   width: 20%;
-  height: 100%;
+  height: auto;
   display: flex;
   flex-direction: column;
   padding-left: 0.8rem;
@@ -140,7 +170,7 @@ body {
   margin-top: -10vh;
   height: 28vh;
 
-  gap: 1%; /* Abstand zwischen Linie und Buttons */
+  /* Abstand zwischen Linie und Buttons */
 }
 
 .linie {
@@ -172,6 +202,11 @@ body {
   height: 3vh;
 }
 
+.navButton:hover {
+  font-size: 0.75rem;
+  transition: 0.2s;
+}
+
 /* Wenn Button hover, aber nicht aktiv */
 
 .archivNavigation {
@@ -180,12 +215,13 @@ body {
 
 .buttonTagsNav {
   font-family: "suisse intl semibold";
-  font-size: 0.6rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   color: black;
-  background-color: white;
-  border: 1px solid black;
-  padding: 0.4rem 1.2rem;
+  background-color: transparent;
+
+  border: 0px solid black;
+
   border-radius: 25px;
 
   transition: all 0.3s ease;
@@ -193,20 +229,32 @@ body {
   overflow: hidden;
   margin-bottom: 1vh;
   margin-top: 1vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-top: 2px;
+  padding: 12px;
+
+  line-height: 1;
+  height: 5px; /* falls du eine feste Höhe möchtest */
 }
 
 .buttonTagsNav:hover {
-  background-color: black;
-  color: white;
+  color: black;
+  font-family: "suisse intl semibold italic";
+  font-size: 0.9rem;
+  transition: 0.5 ease;
 }
 
 .buttonTagsNav:active {
   transform: scale(0.7);
 }
 
-#zufaelligWaehlen {
-  margin-left: 1.2vh;
-  font-size: 0.9rem;
+.arrow {
+  font-size: 0.8rem;
+  margin-left: 5px;
 }
 
 *:focus {
@@ -279,7 +327,7 @@ body {
   top: 0;
   right: 0;
   height: 100vh;
-  width: 84vw;
+  width: 82vw;
   overflow-y: auto;
   overflow-x: hidden;
   box-sizing: border-box;
@@ -328,8 +376,8 @@ body {
   font-size: 0.7rem;
 
   transition: opacity 0.3s ease;
-  margin-right: 0.25em;
-  margin-left: 1vh;
+  margin-right: 1em;
+  margin-left: 0.4em;
 
   font-family: "suisse intl semibold";
 }
@@ -352,7 +400,15 @@ body {
   opacity: 1;
 }
 .stopWrapper {
-  margin-left: 1.5vh;
+  padding: 5%;
+  border-radius: 0.4vh;
+
+  flex: 1 1 0; /* restliche Fläche, wird kleiner wenn routeWrapper größer wird */
+  min-height: 0; /* wichtig, sonst kann flexbox nicht unter die content-Höhe schrumpfen */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* verhindert Scroll-Leckage */
+  margin-bottom: 2rem;
 }
 
 .tag {
@@ -401,7 +457,7 @@ body {
   flex-direction: column;
   align-items: left;
 
-  max-height: 100%;
+  height: 70vh;
   width: 100%;
   overflow: hidden;
 }
@@ -420,12 +476,34 @@ body {
 }
 
 .tagContainer {
+  flex: 1 1 auto; /* darf wachsen und schrumpfen */
   display: flex;
-  height: 70%;
   flex-direction: column;
   align-items: flex-start;
-  overflow-y: auto;
-  flex: 1;
+  overflow-y: auto; /* eigene Scrollbar */
+  max-height: 100%; /* beschränkt sich auf Höhe des Elternteils */
+  gap: 0.2rem;
+
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE & Edge */
+}
+
+.tagContainer::-webkit-scrollbar {
+  width: 0px; /* Chrome, Safari, Opera */
+}
+
+.tagContainer:hover {
+  overflow-y: auto; /* Scrollbar nur bei Hover */
+  scrollbar-width: thin; /* Firefox */
+}
+
+.tagContainer:hover::-webkit-scrollbar {
+  width: 4px;
+}
+
+.tagContainer:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
 }
 
 .tagAuswahl .tag.visible {
@@ -442,6 +520,7 @@ body {
 /* ausgewählte Tags immer schwarz darstellen */
 .tag.selected {
   color: black;
+
   font-family: "suisse mono regular";
   font-style: thin;
   font-size: 0.8rem;
@@ -460,17 +539,25 @@ body {
 }
 
 .tag.selected:hover {
-  background-color: #2e2e2e;
-  color: white;
-  transition: 0.5s;
+  color: rgb(160, 159, 159);
+
+  border: 1px solid rgba(0, 0, 0, 0); /* transparenter Border */
+
+  transition: 0.2s;
+}
+
+.scroll-spacer {
+  height: 200px; /* oder z. B. 5vh – je nach Bedarf */
+  width: auto;
+  flex-shrink: 0;
+  background-color: red;
 }
 
 .beschreibungTags {
-  font-family: "suisse intl light italic";
-  font-size: 1.3vh;
+  font-family: "suisse intl light";
+  font-size: 1.4vh;
   margin-top: 1vh;
 
-  margin-left: 1vh;
   margin-bottom: 0.5vh;
 }
 
@@ -480,7 +567,10 @@ body {
   margin-left: 0%;
   margin-bottom: 2vh;
   border-radius: 0.4vh;
+
+  flex: 0 1 auto; /* nimmt nur so viel Platz wie nötig */
   max-height: 40%;
+  overflow: auto; /* falls Inhalt >40 % wird intern gescrollt */
 }
 
 .tag-leave {
@@ -510,6 +600,8 @@ body {
   width: 79%;
   margin-left: auto;
   margin-right: 0;
+  display: flex;
+  flex-direction: row;
 }
 
 /* 4) Einfahr-Animation, wenn Lightbox sichtbar wird */
@@ -525,10 +617,10 @@ body {
 /* 5) Inhalt der Lightbox */
 .lightbox-content {
   position: relative;
-  top: 5vh;
+
   margin: 0;
-  width: 95%;
-  height: 80%;
+  width: auto;
+  height: 100%;
   padding: 2rem;
   border-radius: 4px;
   overflow: hidden;
@@ -551,7 +643,7 @@ body {
 .lbInfoAttribut {
   color: black;
   font-family: "suisse intl semibold";
-  font-size: 0.7rem;
+  font-size: 12.5px;
   height: auto;
 
   display: flex;
@@ -566,7 +658,7 @@ body {
   height: auto;
 
   font-family: "suisse mono regular";
-  font-size: 0.7rem;
+  font-size: 13px;
   flex: 1; /* nimmt den restlichen Platz ein */
 }
 
@@ -603,12 +695,36 @@ body {
   opacity: 0;
 }
 
+/*  nur einzelne Boxen bottom-alignen  */
+.lightbox-info,
+.lbInfoButton,
+#beschreibungTagsLightbox {
+  align-self: flex-end; /* hängt sie an die Unterkante der Flex-Zeile */
+  margin-bottom: 10%;
+}
+
 .startbox-info {
   display: flex;
   flex-direction: column;
 
   width: 100%;
   height: 20%;
+}
+
+.startbox-text {
+  height: auto;
+  width: 64vh;
+  color: black;
+  font-family: "suisse intl semibold";
+
+  margin-top: 10%;
+  margin-left: 50%;
+  opacity: 0.5;
+}
+
+.startbox-text:hover {
+  opacity: 1;
+  transition: 0.4s;
 }
 
 .startbox-content {
@@ -679,7 +795,13 @@ body {
   color: black;
 
   margin: 0 auto;
-  margin-top: 15%;
+  margin-top: 20%;
+  transition: 0.5s ease;
+}
+
+.wortmarkeStart:hover {
+  width: 155vh;
+  transition: 0.5s ease;
 }
 
 #startbox,
@@ -773,7 +895,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 12vh;
+  margin-top: 20vh;
 
   height: 100vh;
   position: relative;
@@ -782,22 +904,18 @@ body {
 
 /* Linke Spalte: Scrollbare Tabelle */
 .datenbankbox-info {
-  flex: 1 1 auto;
-
-  padding: 3vh;
-  max-height: 60vh;
-
   overflow-y: auto;
-  overflow-x: hidden;
+  max-height: 80vh; /* z. B., falls nötig */
 
   position: relative;
+  padding-top: 0;
+  margin-top: 0;
+  overflow-x: hidden; /* horizontal scroll verbieten */
 }
 
 /* Tabelle: volle Breite, klare Ränder */
 .datenbankbox-info table {
-  width: 90%;
-  height: 200px;
-
+  width: max-content;
   border-collapse: collapse;
   color: white;
   font-family: "suisse mono thin";
@@ -820,14 +938,16 @@ body {
 .datenbankbox-info table thead th {
   position: sticky;
   top: 0;
-  background-color: white;
-  color: #222222; /* gleiche Farbe wie Tabellenhintergrund */
+  background: #222222;
+  color: white; /* gleiche Farbe wie Tabellenhintergrund */
   z-index: 10;
+  height: 30px;
 }
 
 /* Hover-Cover auf Gelb */
 .datenbankbox-info tr:hover {
-  color: rgba(255, 255, 0);
+  background-color: white;
+  color: #000;
 }
 
 /* Rechte Spalte: Bild/Video-Vorschau */
@@ -955,7 +1075,7 @@ body {
 }
 
 .fadeInDown {
-  animation: fadeInDown 1s ease;
+  animation: fadeInDown 0.8s ease;
 }
 
 .slideInDown {
