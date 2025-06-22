@@ -3,6 +3,7 @@ const bilderEl = document.querySelector("#bilder");
 // Referenz auf Tag-Container und Anzeige-Element
 const tagContainer = document.querySelector(".tagContainer");
 const auswahlZahlEl = document.querySelector(".auswahlZahl");
+const auswahlZahlTag = document.querySelector("#auswahlZahlTag");
 //const listeOrtEl = document.querySelector(".listeTextOrt");
 //const listeThemaEl = document.querySelector(".listeTextThema");
 const buttonTagsNav = document.querySelector(".buttonTagsNav");
@@ -26,15 +27,19 @@ const BATCH_SIZE = 50;
 let isLoading = false;
 let startboxWheelHandler;
 let archivOpen = false;
+const beschreibungTagsLightbox = document.querySelector(
+  "#beschreibungTagsLightbox"
+);
+let requireAllTags = false; // falls true: AND-Filter, sonst weiter OR-Filter
 
 // aktueller Zoom-Faktor
 let scale = 1;
 // Zeit (ms) bis Auto-Scroll startet
-const IDLE_DELAY = 3_000;
+const IDLE_DELAY = 1_500;
 // Wie viele Pixel pro Tick gescrollt werden
-const AUTO_SCROLL_STEP = 2;
+const AUTO_SCROLL_STEP = 1;
 // Wie oft pro Sekunde der Scroll-Tick läuft
-const AUTO_SCROLL_INTERVAL_MS = 30;
+const AUTO_SCROLL_INTERVAL_MS = 10;
 
 let idleTimer;
 let autoScrollInterval;
@@ -75,9 +80,9 @@ function onUserActivity() {
 // Initial
 fetchData();
 resetIdleTimer();
-window.addEventListener("mousemove", onUserActivity, { passive: true });
+
 window.addEventListener("wheel", onUserActivity, { passive: true });
-window.addEventListener("keydown", onUserActivity, { passive: true });
+containerEl.addEventListener("mousemove", onUserActivity, { passive: true });
 
 async function fetchData() {
   try {
@@ -104,25 +109,33 @@ async function fetchData() {
 }
 
 // Render- und Klick-Handler für Tags
+// Globale Variable, um auch in der Lightbox auf die Häufigkeit zugreifen zu können
+const tagFrequencies = {};
+
 function renderTags(data) {
   tagContainer.innerHTML = "";
-  const freq = {};
+  // Leere die globale Frequenztabelle vorher
+  Object.keys(tagFrequencies).forEach((key) => delete tagFrequencies[key]);
+
   data.forEach((item) => {
     [item.Ort, item.Thema].forEach((term) => {
-      if (term) freq[term] = (freq[term] || 0) + 1;
+      if (term) tagFrequencies[term] = (tagFrequencies[term] || 0) + 1;
     });
   });
-  Object.entries(freq)
+
+  Object.entries(tagFrequencies)
     .sort(([, a], [, b]) => b - a)
     .forEach(([term]) => {
-      const count = freq[term];
+      const count = tagFrequencies[term];
       const tag = document.createElement("div");
       tag.classList.add("tag");
       tag.dataset.term = term;
-      tag.dataset.count = count; // <–– hier speichern
+      tag.dataset.count = count;
+
       const countSpan = document.createElement("span");
       countSpan.classList.add("tag-count");
       countSpan.textContent = count;
+
       tag.appendChild(countSpan);
       tag.append(` ${term}`);
       tag.addEventListener("click", onTagClick);
@@ -156,17 +169,11 @@ function onTagClick(e) {
 }
 
 function updateAuswahlSumme() {
-  // Alle aktuell ausgewählten Tags holen
-  const selectedTagsEls = Array.from(
-    tagContainer.querySelectorAll(".tag.selected")
-  );
-  // Summe ihrer data-count aufsummieren
-  const sum = selectedTagsEls.reduce(
-    (acc, tagEl) => acc + Number(tagEl.dataset.count),
-    0
-  );
-  // In den <p class="auswahlZahl"> schreiben
-  auswahlZahlEl.innerText = sum;
+  if (selectedTags.size === 0) {
+    auswahlZahlEl.innerText = "504"; // Default-Zahl
+  } else {
+    auswahlZahlEl.innerText = filteredData.length;
+  }
 }
 
 function applyFilter() {
@@ -181,7 +188,7 @@ function applyFilter() {
   }
   // Anzeige der Anzahl aktualisieren
   if (selectedTags.size === 0) {
-    auswahlZahlEl.innerText = "266";
+    auswahlZahlEl.innerText = "504";
   } else {
     updateAuswahlSumme();
   }
@@ -204,7 +211,7 @@ function handleScroll() {
   // Endlos-Scroll: wenn Ende erreicht, zurück zum Anfang
   if (
     containerEl.scrollTop + containerEl.clientHeight >=
-      containerEl.scrollHeight - 400 &&
+      containerEl.scrollHeight - 1000 &&
     !isLoading
   ) {
     isLoading = true;
@@ -236,13 +243,12 @@ function loadMoreImages() {
 
     const wrapper = document.createElement("div");
     wrapper.classList.add("bildAll");
-    // Parallax-Transform wie gehabt
     wrapper.style.transform = `translateZ(${getRandomNumber(
       -20,
       -80
     )}px) scale(${getRandomNumber(1.05, 1.2)})`;
+    wrapper.style.opacity = "0"; // ← vorerst unsichtbar
 
-    // Erstelle je nach Dateityp ein Video- oder Bild-Element
     let media;
     if (/\.(mp4|mov)$/i.test(el.Name)) {
       media = document.createElement("video");
@@ -251,23 +257,34 @@ function loadMoreImages() {
       media.loop = true;
       media.muted = true;
       media.playsInline = true;
-      // Für mobile Safari
       media.setAttribute("playsinline", "");
-      // Optional: nur Metadaten vorladen
       media.preload = "metadata";
+
+      // Ladeüberwachung für Video
+      media.addEventListener("loadeddata", () => handleMediaLoaded(wrapper));
+      media.addEventListener("error", () =>
+        console.warn("Video konnte nicht geladen werden:", media.src)
+      );
     } else {
       media = document.createElement("img");
       media.src = "img/" + el.Name;
       media.loading = "lazy";
       media.alt = el.Name.replace(/\.[^.]+$/, "");
+
+      if (media.complete) {
+        handleMediaLoaded(wrapper);
+      } else {
+        media.addEventListener("load", () => handleMediaLoaded(wrapper));
+        media.addEventListener("error", () =>
+          console.warn("Bild konnte nicht geladen werden:", media.src)
+        );
+      }
     }
 
-    // gemeinsame Styles und Parallax-Speed
     media.style.width = getRandomNumber(200, 600) + "px";
     media.dataset.speed = getRandomNumber(0.5, 1.5);
     media.classList.add("gallery-media");
 
-    // Caption
     const cap = document.createElement("p");
     cap.innerText = el.Ort;
     cap.classList.add("caption");
@@ -277,17 +294,10 @@ function loadMoreImages() {
   }
 }
 
-function handleZoom(e) {
-  if (!e.ctrlKey) return;
-  e.preventDefault();
-  scale += -e.deltaY * 0.05;
-  scale = Math.min(Math.max(1, scale), 3);
-  const rect = bilderEl.getBoundingClientRect();
-  const ox = ((e.clientX - rect.left) / rect.width) * 100;
-  const oy = ((e.clientY - rect.top) / rect.height) * 100;
-  bilderEl.style.transformOrigin = `${ox}% ${oy}%`;
-  bilderEl.style.transform = `scale(${scale})`;
-  zoomIndicator.innerText = scale.toFixed(2);
+// Funktion: sichtbar machen mit weichem Übergang
+function handleMediaLoaded(wrapper) {
+  wrapper.style.transition = "opacity 0.6s ease";
+  wrapper.style.opacity = "1";
 }
 
 function shuffle(a) {
@@ -362,20 +372,65 @@ function openLightbox(mediaEl) {
     <span class="lbInfoTag">${meta.Datum}</span>
   </p>
   <p class="lbInfoAttribut">
-    <strong>Quelle:</strong>
+    <strong>Quelle</strong>
     <span class="lbInfoTag">${meta.Fotograf_Quelle}</span>
   </p>
  
 `;
 
   lbInfoButton.innerHTML = `
-    <div class="tag selected">${meta.Thema}</div>
-    
-    
-    
-    
-    <div class="tag selected">${meta.Ort}</div>
+<div class="tag selected lightbox-tag lightbox-tag-hover" data-term="${
+    meta.Thema
+  }">
+  <span class="tag-count">${tagFrequencies[meta.Thema] || 0}</span>
+  ${meta.Thema}
+</div>
+<div class="tag selected lightbox-tag" data-term="${meta.Ort}">
+  <span class="tag-count">${tagFrequencies[meta.Ort] || 0}</span>
+  ${meta.Ort}
+</div>
 `;
+
+  // Event-Listener JETZT hinzufügen – weil die Tags jetzt im DOM sind
+  document.querySelectorAll(".lightbox-tag").forEach((tagEl) => {
+    tagEl.addEventListener("click", () => {
+      const term = tagEl.dataset.term;
+
+      if (!term) return;
+
+      // 1. Ausgewählte oben leeren
+      selectedTags.clear();
+      selectedTagsEl.innerHTML = "";
+
+      // 2. Entferne Tag aus .tagContainer (falls vorhanden)
+      const originalTag = scrollContainerEl.querySelector(
+        `.tag[data-term="${CSS.escape(term)}"]`
+      );
+
+      if (originalTag) {
+        originalTag.classList.add("selected");
+        selectedTagsEl.prepend(originalTag);
+      } else {
+        // Notfall: tag war noch nie da → erzeugen
+        const fallbackTag = document.createElement("div");
+        fallbackTag.classList.add("tag", "selected");
+        fallbackTag.dataset.term = term;
+        fallbackTag.innerHTML = `
+          <span class="tag-count">${tagFrequencies[term] || 0}</span>
+          ${term}
+        `;
+        fallbackTag.addEventListener("click", () => {
+          fallbackTag.remove();
+          selectedTags.delete(term);
+          applyFilter();
+        });
+        selectedTagsEl.prepend(fallbackTag);
+      }
+
+      selectedTags.add(term);
+      applyFilter();
+    });
+  });
 
   // Wenn wir gerade im „closing“-Zustand waren, rausnehmen,
   // damit die Slide-In-Animation wieder greift
@@ -384,6 +439,15 @@ function openLightbox(mediaEl) {
   // Lightbox öffnen
   lightbox.setAttribute("aria-hidden", "false");
   document.body.style.overflow = "hidden";
+}
+
+function ClickTagLightbox() {
+  var div = document.getElementById("myDiv");
+  if (div.style.display === "none") {
+    div.style.display = "block";
+  } else {
+    div.style.display = "none";
+  }
 }
 
 function closeLightbox() {
@@ -404,13 +468,23 @@ function closeLightbox() {
 
 const lightboxBackdrop = lightbox.querySelector(".lightbox-backdrop");
 const sidebar = document.querySelector(".sidebar");
-if (lightboxBackdrop) {
-  lightboxBackdrop.addEventListener("click", () => {
-    closeLightbox();
-  });
+if (lightboxBackdrop && sidebar) {
+  // Klick auf Backdrop – aber nur wenn direkt
+
+  // Klick auf Sidebar – immer schließen
   sidebar.addEventListener("click", () => {
     closeLightbox();
   });
+
+  // Klick auf lightbox-content – nur direkt, keine Kinder!
+  const lightboxContent = document.querySelector(".lightbox-content");
+  if (lightboxContent) {
+    lightboxContent.addEventListener("click", (e) => {
+      if (e.target === lightboxContent) {
+        closeLightbox();
+      }
+    });
+  }
 }
 
 // Klick auf Bild oder Video → openLightbox aufrufen
@@ -634,6 +708,7 @@ function updateButtonOpacity() {
 
       wordmarkeEl.style.color = "black";
     });
+    setCursorColor("black");
   } else if (impressumboxOpen) {
     buttons.forEach((button) => {
       button.style.opacity = button.id === "impressumButton" ? "1" : "0.2";
@@ -644,6 +719,7 @@ function updateButtonOpacity() {
 
       wordmarkeEl.style.color = "black";
     });
+    setCursorColor("black");
   } else if (datenbankboxOpen) {
     buttons.forEach((button) => {
       button.style.opacity = button.id === "datenbankButton" ? "1" : "0.2";
@@ -651,9 +727,10 @@ function updateButtonOpacity() {
       follower.style.color = "white";
       navButtonLeiste.style.borderLeft = "3px solid white";
       wordmarke.style.borderLeft = "3px solid white";
-
       wordmarkeEl.style.color = "white";
     });
+
+    setCursorColor("white"); // ← HIER Cursor auf weiß setzen
   } else if (archivOpen) {
     buttons.forEach((button) => {
       button.style.opacity = button.id === "archivButton" ? "1" : "0.2";
@@ -664,6 +741,7 @@ function updateButtonOpacity() {
       wordmarkeEl.style.color = "black";
       navButtonLeiste.style.borderLeft = "3px solid black";
     });
+    setCursorColor("black");
   } else {
     // fallback
     buttons.forEach((button) => {
@@ -675,6 +753,7 @@ function updateButtonOpacity() {
       wordmarkeEl.style.color = "black";
       navButtonLeiste.style.borderLeft = "3px solid black";
     });
+    setCursorColor("black");
   }
 }
 
@@ -764,6 +843,25 @@ function renderDatabase() {
     });
 
     tbody.appendChild(tr);
+    // Bei Klick auf Zeile → Datenbankbox schließen & Lightbox öffnen
+    tr.addEventListener("click", () => {
+      const datenbankbox = document.getElementById("datenbankbox");
+      const closeObj = overlayBoxes.find((o) => o.box.id === "datenbankbox");
+
+      if (closeObj) {
+        closeObj.close(); // Schließt die Box
+
+        // Öffne die Lightbox nach kurzem Delay (damit die Animation durchläuft)
+        setTimeout(() => {
+          const mediaEl = document.createElement(
+            item.Name.match(/\.(mp4|mov)$/i) ? "video" : "img"
+          );
+          mediaEl.src = "img/" + item.Name;
+
+          openLightbox(mediaEl); // ← deine bereits existierende Lightbox-Funktion
+        }, 300);
+      }
+    });
   });
 
   table.appendChild(tbody);
@@ -825,7 +923,8 @@ function addHoverText(
   content,
   color = "white",
   isHTML = false,
-  onlyIfLightboxOpen = false
+  onlyIfLightboxOpen = false,
+  cursorColor = null // optional neue Farbe
 ) {
   const el = document.querySelector(selector);
   if (!el) return;
@@ -837,47 +936,72 @@ function addHoverText(
 
     if (onlyIfLightboxOpen && !isLightboxOpen) return;
 
-    setFollower(content, color, isHTML);
+    const datenbankbox = document.getElementById("datenbankbox");
+    const isDatenbankOpen =
+      datenbankbox?.getAttribute("aria-hidden") === "false";
+    const finalColor = isDatenbankOpen ? "white" : color;
+
+    setFollower(content, finalColor, isHTML);
+
+    if (cursorColor) setCursorColor(cursorColor);
+
     follower.setAttribute("data-active", selector);
   });
 
   el.addEventListener("mouseleave", () => {
     if (follower.getAttribute("data-active") === selector) {
-      follower.innerHTML = "";
+      setFollower();
       follower.removeAttribute("data-active");
+
+      const datenbankbox = document.getElementById("datenbankbox");
+      const isOpen = datenbankbox?.getAttribute("aria-hidden") === "false";
+
+      setCursorColor(isOpen ? "white" : "black");
+      follower.style.color = isOpen ? "white" : "black"; // ← DAS hat bisher gefehlt
     }
   });
 }
 
 const hoverMappings = [
   {
-    selectors: [
-      "#container",
-      ".tagContainer",
-      ".selectedTags",
-      ".listeAttributeStart",
-    ],
+    selectors: ["#container", ".tagContainer", ".listeAttributeStart"],
+    text: `
+      <span class="cursorStylingBold">
+        <span class="cursorStylingLight">{</span>scroll
+      </span>
+      <span class="cursorStylingLight">&</span>
+      <span class="cursorStylingBold">click</span>
+      <span class="cursorStylingLight">}</span>
+    `,
+    color: "black",
+    cursorColor: "#ffff00",
+  },
+  {
+    selectors: [".selectedTags"],
     text: `
       <span class="cursorStylingBold">
         <span class="cursorStylingLight">{</span>click
       </span>
       <span class="cursorStylingLight">&</span>
-      <span class="cursorStylingBold">scroll</span>
+      <span class="cursorStylingBold">delete</span>
       <span class="cursorStylingLight">}</span>
     `,
     color: "black",
+    cursorColor: "#ffff00",
   },
+
   {
     selectors: [
-      "#lightbox",
       ".impressumbox-backdrop",
       "#impressumbox",
       ".lightbox-backdrop",
     ],
     text: `
       <span class="cursorStylingBold">
-        <span class="cursorStylingLight">{</span>close
+        <span class="cursorStylingLight">{</span>click
       </span>
+      <span class="cursorStylingLight">&</span>
+      <span class="cursorStylingBold">close</span>
       <span class="cursorStylingLight">}</span>
     `,
     color: "black",
@@ -889,7 +1013,6 @@ const hoverMappings = [
       "#archivButton",
       "#impressumButton",
       "#datenbankButton",
-      ".lbInfoButton",
     ],
     text: `
       <span class="cursorStylingBold">
@@ -900,7 +1023,7 @@ const hoverMappings = [
     color: "black",
   },
   {
-    selectors: ["#zufaelligWaehlen"],
+    selectors: ["#zufaelligWaehlen", "#resetButton"],
     text: `
       <span class="cursorStylingBold">
         <span class="cursorStylingLight">{</span>click
@@ -908,6 +1031,7 @@ const hoverMappings = [
       <span class="cursorStylingLight">}</span>
     `,
     color: "black",
+    cursorColor: "#ffff00",
   },
   {
     selectors: [".startbox-content"],
@@ -931,6 +1055,17 @@ const hoverMappings = [
     `,
     color: "black",
   },
+
+  {
+    selectors: [".datenbankbox-backdrop"],
+    text: `
+      <span class="cursorStylingBold">
+        <span class="cursorStylingLight">{</span>close
+      </span>
+      <span class="cursorStylingLight">}</span>
+    `,
+    color: "white",
+  },
 ];
 
 addHoverText(
@@ -943,12 +1078,74 @@ addHoverText(
   `,
   "black",
   true,
-  true // ← Nur wenn Lightbox offen ist
+  true,
+  "#ffff00"
+  // ← Nur wenn Lightbox offen ist
 );
 
-hoverMappings.forEach(({ selectors, text, color }) => {
+addHoverText(
+  ".lbInfoButton",
+  `
+    <span class="cursorStylingBold">
+      <span class="cursorStylingLight">{</span>click
+    </span>
+    <span class="cursorStylingLight">}</span>
+  `,
+  "black",
+  true,
+  true // Nur wenn Lightbox offen
+);
+// Datenbankbox-Info: scroll
+addHoverText(
+  ".datenbankbox-info",
+  `
+      <span class="cursorStylingBold">
+        <span class="cursorStylingLight">{</span>scroll
+      </span>
+      <span class="cursorStylingLight">&</span>
+      <span class="cursorStylingBold">click</span>
+      <span class="cursorStylingLight">}</span>
+    `,
+  "#ffff00",
+  true,
+  false,
+  "#ffff00"
+);
+
+document.querySelectorAll(".datenbankbox-info").forEach((el) => {
+  el.addEventListener("mouseleave", (e) => {
+    const backdrop = document.querySelector(".datenbankbox-backdrop");
+    if (backdrop && backdrop.contains(e.relatedTarget)) {
+      setFollower(
+        `<span class="cursorStylingBold"><span class="cursorStylingLight">{</span>close</span><span class="cursorStylingLight">}</span>`,
+        "white",
+        true,
+        false,
+        "#ffff00"
+      );
+      follower.setAttribute("data-active", ".datenbankbox-backdrop");
+    }
+  });
+});
+
+document.querySelectorAll(".lbInfoButton").forEach((el) => {
+  el.addEventListener("mouseleave", (e) => {
+    const backdrop = document.querySelector(".lightbox-backdrop");
+    if (backdrop && backdrop.contains(e.relatedTarget)) {
+      // Du bist wieder in der Lightbox – setze den "Close"-Follower neu
+      setFollower(
+        `<span class="cursorStylingBold"><span class="cursorStylingLight">{</span>close</span><span class="cursorStylingLight">}</span>`,
+        "black",
+        true
+      );
+      follower.setAttribute("data-active", ".lightbox-backdrop");
+    }
+  });
+});
+
+hoverMappings.forEach(({ selectors, text, color, cursorColor }) => {
   selectors.forEach((selector) => {
-    addHoverText(selector, text.trim(), color, true);
+    addHoverText(selector, text.trim(), color, true, false, cursorColor);
   });
 });
 
@@ -974,6 +1171,13 @@ document.addEventListener("mousemove", (e) => {
   cursorPointer.style.left = `${x}px`;
 });
 
+function setCursorColor(color = "black") {
+  const cursorNormal = document.getElementById("custom-cursor");
+  const cursorPointer = document.getElementById("custom-cursor-pointer");
+  if (cursorNormal) cursorNormal.style.color = color;
+  if (cursorPointer) cursorPointer.style.color = color;
+}
+
 // Zeigt pointer-Cursor auf Buttons o.Ä.
 document
   .querySelectorAll(
@@ -983,10 +1187,63 @@ document
     el.addEventListener("mouseenter", () => {
       cursorPointer.style.display = "block";
       cursorNormal.style.display = "none";
-      cursorPointer.style.color = "black";
     });
     el.addEventListener("mouseleave", () => {
       cursorPointer.style.display = "none";
       cursorNormal.style.display = "block";
     });
   });
+
+const beschreibungTagsLightboxBtn = document.getElementById(
+  "beschreibungTagsLightbox"
+);
+
+beschreibungTagsLightbox.addEventListener("click", () => {
+  // Aktuelles Bild-Metaobjekt erneut ermitteln
+  const imgEl = lightbox.querySelector(".lightbox-img");
+  if (!imgEl || !imgEl.src) return;
+
+  const url = new URL(imgEl.src, window.location.href);
+  const filename = url.pathname.split("/").pop() || "";
+  const meta = fullData.find(
+    (item) => encodeURIComponent(item.Name) === filename
+  );
+  if (!meta) return;
+
+  const { Ort, Thema } = meta;
+  selectedTags.clear(); // Vorherige Auswahl löschen
+  selectedTagsEl.innerHTML = ""; // UI leeren
+
+  [Ort, Thema].forEach((term) => {
+    if (!term) return;
+    selectedTags.add(term);
+
+    // Tag aus scrollContainerEl finden
+    const originalTag = scrollContainerEl.querySelector(
+      `.tag[data-term="${CSS.escape(term)}"]`
+    );
+
+    if (originalTag) {
+      originalTag.classList.add("selected");
+      selectedTagsEl.appendChild(originalTag);
+    } else {
+      // Fallback, falls nicht vorhanden
+      const fallbackTag = document.createElement("div");
+      fallbackTag.classList.add("tag", "selected");
+      fallbackTag.dataset.term = term;
+      fallbackTag.innerHTML = `
+        <span class="tag-count">${tagFrequencies[term] || 0}</span>
+        ${term}
+      `;
+      fallbackTag.addEventListener("click", () => {
+        fallbackTag.remove();
+        selectedTags.delete(term);
+        applyFilter();
+      });
+      selectedTagsEl.appendChild(fallbackTag);
+    }
+  });
+
+  applyFilter(); // Filter anwenden
+  closeLightbox(); // Lightbox schließen
+});
